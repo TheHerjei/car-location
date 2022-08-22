@@ -1,0 +1,40 @@
+#!/bin/bash
+# Script dependencies:
+#  termux-api
+#  termux-location
+#  jq
+
+# to install decomment next line
+# pkg update && pkg install termux-api termux-location jq
+
+# Edit next line with a valid path where you have permissions
+# if you want the file to be consultable outside termux the path must be in the Internal or External storage folder
+M="/data/data/com.termux/files/home/car-location"
+
+# Next line for position provider, can be gps|network|passive accordingly with termux-location man page
+P='gps'
+
+echo "# Ultima posizione registrata:"
+echo $(cat $M)
+echo "\n# Registrare nuova posizione? (s/n)"
+read newposition
+
+if [ ! $newposition = "s" ]
+then
+	exit 0
+fi
+
+# Try to retrieve current position
+echo "Current position" >> $M
+termux-location -p $P -r once > car-location.json
+readarray -t values < <(jq -r '.[]' car-location.json)
+
+# Choose between Google Maps, Open Street Map or Geo url scheme for link generation
+#L='https://www.openstreetmap.org/?mlat='${values[0]}'&mlon='${values[1]}
+#L='http://maps.google.com/maps?q='${values[0]}','${values[1]}
+L='geo:'${values[0]}','${values[1]}
+echo $L >> $M
+echo Alt: ${values[2]} >> $M
+
+echo "Provider: $P" >> $M
+rm car-location.json
